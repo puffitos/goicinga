@@ -5,13 +5,17 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/puffitos/icingaclient/internal/util"
+	"github.com/puffitos/goicinga/internal/util"
 )
 
-// Client handles the communication with the icinga API
-type Client struct {
+type Client interface {
+	Call(req *http.Request) (*http.Response, func() error, error)
+}
+
+// Icinga handles the HTTP communication with the icinga API
+type Icinga struct {
 	Config *Config
-	Conn   *http.Client
+	Client *http.Client
 	Log    *logr.Logger
 }
 
@@ -29,15 +33,14 @@ type Config struct {
 	CertPath string
 }
 
-// NewClient creates a new client with the given configuration
-func NewClient(config *Config, log *logr.Logger) *Client {
-	tlsCfg := util.NewTLSConfig(config.CertPath)
-	return &Client{
+// New creates a new icinga client with the passed configuration and logger
+func New(config *Config, log *logr.Logger) *Icinga {
+	return &Icinga{
 		Config: config,
-		Conn: &http.Client{
+		Client: &http.Client{
 			Timeout: config.Timeout,
 			Transport: &http.Transport{
-				TLSClientConfig: tlsCfg,
+				TLSClientConfig: util.NewTLSConfig(config.CertPath),
 			},
 		},
 		Log: log,
@@ -46,14 +49,14 @@ func NewClient(config *Config, log *logr.Logger) *Client {
 
 // Call executes the given request and returns an error if the request failed.
 // The calling function is expected to close the response body using the returned function.
-func (c *Client) Call(req *http.Request) (*http.Response, func() error, error) {
+func (c *Icinga) Call(req *http.Request) (*http.Response, func() error, error) {
 	c.Log.V(1).Info("calling icinga api", "url", req.URL.String(), "method", req.Method, "body", req.Body)
 	req.SetBasicAuth(c.Config.APIUser, c.Config.APIPass)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-HTTP-Method-Override", req.Method)
 
-	resp, err := c.Conn.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		c.Log.Error(err, "failed to call icinga api", "path", req.URL.Path)
 		return nil, nil, err

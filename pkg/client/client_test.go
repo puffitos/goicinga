@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// TestClient_Call tests the Call method of the client.
+// TestClient_Call tests the Call method of the Icinga client.
 // It tests whether the headers are set correctly and
 // whether the request is executed correctly.
 func TestClient_Call(t *testing.T) {
@@ -55,7 +55,7 @@ func TestClient_Call(t *testing.T) {
 			}
 
 			// httpmock
-			httpmock.ActivateNonDefault(c.Conn)
+			httpmock.ActivateNonDefault(c.Client)
 			defer httpmock.DeactivateAndReset()
 			if !tt.wantErr {
 				httpmock.RegisterResponder("GET", "https://localhost:5665/", httpmock.NewStringResponder(tt.wantCode, tt.wantBody))
@@ -88,7 +88,7 @@ func TestClient_Call(t *testing.T) {
 }
 
 // newTestClient returns a new client for testing purposes.
-func newTestClient() *Client {
+func newTestClient() *Icinga {
 	var log logr.Logger
 
 	zapLog, err := zap.NewDevelopment()
@@ -97,7 +97,7 @@ func newTestClient() *Client {
 	}
 	log = zapr.NewLogger(zapLog)
 
-	return NewClient(&Config{
+	return New(&Config{
 		BaseURL:  "https://localhost:5665",
 		APIUser:  "test",
 		APIPass:  "test",

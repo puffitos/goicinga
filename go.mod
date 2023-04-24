@@ -1,4 +1,4 @@
-module github.com/puffitos/icingaclient
+module github.com/puffitos/goicinga
 
 go 1.20
 
