@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/puffitos/goicinga/pkg/client"
 
@@ -42,9 +43,9 @@ func (c *services) Create(ctx context.Context, svc *Service) error {
 		return err
 	}
 
-	p, err := json.Marshal(&CreateServiceRequest{
-		Template: []string{"generic-service"},
-		Attrs:    svc.Attributes,
+	p, err := json.Marshal(&CreateObjectRequest[ServiceAttrs]{
+		Templates: []string{"generic-service"},
+		Attrs:     svc.Attributes,
 	})
 	if err != nil {
 		c.ic.Log.Error(err, "failed marshalling create-service request")
@@ -157,16 +158,69 @@ type Service struct {
 	Attributes *ServiceAttrs `json:"attrs"`
 }
 
-// CreateServiceRequest is the request body for creating a new Services in Icinga.
-type CreateServiceRequest struct {
-	Template []string      `json:"template"`
-	Attrs    *ServiceAttrs `json:"attrs"`
-}
-
 // ServiceAttrs are the attributes of a Service instance.
 type ServiceAttrs struct {
-	Name                string `json:"name"`
-	CheckCommand        string `json:"check_command"`
-	EnableActiveChecks  bool   `json:"enable_active_checks"`
-	EnablePassiveChecks bool   `json:"enable_passive_checks"`
+	// The service name. Must be unique on a per-host basis. For advanced usage in apply rules only.
+	Name string `json:"name"`
+	// A short description of the service.
+	DisplayName string `json:"display_name,omitempty"`
+	// The host this service belongs to. There must be a Host object with that name.
+	HostName string `json:"host_name"`
+	// The service groups this service belongs to.
+	Groups []string `json:"groups,omitempty"`
+	// A map containing custom variables that are specific to this service.
+	Vars map[string]interface{} `json:"vars,omitempty"`
+	// The name of the check command.
+	CheckCommand string `json:"check_command"`
+	// The number of times a service is re-checked before changing into a hard state. Defaults to 3.
+	MaxCheckAttempts int `json:"max_check_attempts,omitempty"`
+	// The name of a time period which determines when this service should be checked.
+	// Not set by default (effectively 24x7).
+	CheckPeriod string `json:"check_period,omitempty"`
+	// Check command timeout in seconds. Overrides the CheckCommand’s timeout attribute
+	CheckTimeout time.Duration `json:"check_timeout,omitempty"`
+	// The check interval (in seconds). This interval is used for
+	// checks when the service is in a HARD state. Defaults to 5m.
+	CheckInterval time.Duration `json:"check_interval,omitempty"`
+	// The retry interval (in seconds). This interval is used for checks
+	// when the service is in a SOFT state. Defaults to 1m.
+	// Note: This does not affect the scheduling after a passive check result.
+	RetryInterval time.Duration `json:"retry_interval,omitempty"`
+	// Whether notifications are enabled. Defaults to true.
+	EnableNotifications bool `json:"enable_notifications,omitempty"`
+	// Whether active checks are enabled. Defaults to true.
+	EnableActiveChecks bool `json:"enable_active_checks,omitempty"`
+	// Whether passive checks are enabled. Defaults to true.
+	EnablePassiveChecks bool `json:"enable_passive_checks,omitempty"`
+	// Enables event handlers for this host. Defaults to true.
+	EnableEventHandler bool `json:"enable_event_handler,omitempty"`
+	// Whether flap detection is enabled. Defaults to false.
+	EnableFlapping bool `json:"enable_flapping,omitempty"`
+	// Flapping upper bound in percent for a service to be considered flapping. 30.0
+	FlappingThresholdHigh float64 `json:"flapping_threshold_high,omitempty"`
+	// Flapping lower bound in percent for a service to be considered not flapping. 25.0
+	FlappingThresholdLow float64 `json:"flapping_threshold_low,omitempty"`
+	// A list of states that should be ignored during flapping calculation. By default, no state is ignored.
+	FlappingIgnoreStates []int `json:"flapping_ignore_states,omitempty"`
+	// Whether performance data processing is enabled. Defaults to true.
+	EnablePerfData bool `json:"enable_perfdata,omitempty"`
+	// The name of an event command that should be executed every time
+	// the service’s state changes or the service is in a SOFT state.
+	EventCommand string `json:"event_command,omitempty"`
+	// Treat all state changes as HARD changes. See here for details. Defaults to false.
+	Volatile bool `json:"volatile,omitempty"`
+	// The zone this object is a member of. Please read the distributed monitoring chapter for details.
+	Zone string `json:"zone,omitempty"`
+	// The endpoint where commands are executed on.
+	CommandEndpoint string `json:"command_endpoint,omitempty"`
+	// Notes for the service.
+	Notes string `json:"notes,omitempty"`
+	// URL for notes for the service (for example, in notification commands).
+	NotesURL string `json:"notes_url,omitempty"`
+	// URL for actions for the service (for example, an external graphing tool).
+	ActionURL string `json:"action_url,omitempty"`
+	// Icon image for the service. Used by external interfaces only.
+	IconImage string `json:"icon_image,omitempty"`
+	// Icon image description for the service. Used by external interface only.
+	IconImageAlt string `json:"icon_image_alt,omitempty"`
 }
