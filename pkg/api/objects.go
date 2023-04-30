@@ -45,6 +45,7 @@ type CustomVarAttrs struct {
 // CheckableAttrs represents the checkable attributes of an icinga object.
 type CheckableAttrs struct {
 	CustomVarAttrs
+	// The name of the check command.
 	CheckCommand string `json:"check_command"`
 	// The number of times an object is re-checked before changing into a hard state. Defaults to 3.
 	MaxCheckAttempts int `json:"max_check_attempts,omitempty"`
@@ -149,31 +150,41 @@ type CheckableAttrs struct {
 	StateType StateType `json:"state_type,omitempty"`
 }
 
+// CheckResult represents the results of a Service check.
 type CheckResult struct {
-	ScheduleStart     time.Time
-	ScheduleEnd       time.Time
-	ExecutionStart    time.Time
-	ExecutionEnd      time.Time
-	Command           string
-	ExitStatus        int
-	State             ServiceState
-	PreviousHardState ServiceState
-	Output            string
-	PerformanceData   []string
-	Active            bool
-	CheckSource       string
-	SchedulingSource  string
-	TTL               float64
-	VarsBefore        map[string]interface{}
-	VarsAfter         map[string]interface{}
-}
-
-// CheckableObjectQuery represents a query for an Icinga object with ConfigObjectAttrs.
-type CheckableObjectQuery struct {
-	Attrs      []string               `json:"attrs,omitempty"`
-	Filter     string                 `json:"filter,omitempty"`
-	FilterVars map[string]interface{} `json:"filter_vars,omitempty"`
-	Joins      []string               `json:"joins,omitempty"`
+	// Scheduled check execution start time.
+	ScheduleStart time.Time `json:"schedule_start,omitempty"`
+	// Scheduled check execution end time.
+	ScheduleEnd time.Time `json:"schedule_end,omitempty"`
+	// Actual check execution start time.
+	ExecutionStart time.Time `json:"execution_start,omitempty"`
+	// Actual check execution end time.
+	ExecutionEnd time.Time `json:"execution_end,omitempty"`
+	// Array of command with shell-escaped arguments or command line string.
+	Command []string `json:"command,omitempty"`
+	// The exit status returned by the check execution.
+	ExitStatus int `json:"exit_status,omitempty"`
+	// The current ServiceState.
+	State ServiceState `json:"state,omitempty"`
+	// The previous hard ServiceState.
+	PreviousHardState ServiceState `json:"previous_hard_state,omitempty"`
+	// The check output.
+	Output string `json:"output,omitempty"`
+	// Array of performance data values.
+	PerformanceData []string `json:"performance_data,omitempty"`
+	// Whether the result is from an active or passive check.
+	Active bool `json:"active,omitempty"`
+	// Name of the node executing the check.
+	CheckSource string `json:"check_source,omitempty"`
+	// Name of the node scheduling the check.
+	SchedulingSource string `json:"scheduling_source,omitempty"`
+	// Time-to-live duration in seconds for this check result.
+	// The next expected check result is now + ttl where freshness checks are executed.
+	TTL float64 `json:"ttl,omitempty"`
+	// Internal attribute used for calculations.
+	VarsBefore map[string]interface{} `json:"vars_before,omitempty"`
+	// Internal attribute used for calculations.
+	VarsAfter map[string]interface{} `json:"vars_after,omitempty"`
 }
 
 type Acknowledgement int
@@ -190,6 +201,14 @@ const (
 	StateTypeSoft StateType = iota
 	StateTypeHard
 )
+
+// ObjectQuery represents a query for an Icinga object.
+type ObjectQuery struct {
+	Attrs      []string               `json:"attrs,omitempty"`
+	Filter     string                 `json:"filter,omitempty"`
+	FilterVars map[string]interface{} `json:"filter_vars,omitempty"`
+	Joins      []string               `json:"joins,omitempty"`
+}
 
 // CreateObjectRequest is the request body for creating a new config object in Icinga.
 // T represents the type of the attributes of the config object to create.
