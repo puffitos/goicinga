@@ -13,8 +13,9 @@ type API interface {
 
 // ClientSet is the implementation of the API interface
 type ClientSet struct {
-	services Services
 	actions  Actions
+	hosts    Hosts
+	services Services
 }
 
 // Services returns the services client
@@ -31,6 +32,7 @@ func (c *ClientSet) Actions() Actions {
 func NewClientSet(config *client.Config, log *logr.Logger) *ClientSet {
 	return &ClientSet{
 		services: newServicesClient(config, log),
+		hosts:    newHostsClient(config, log),
 		actions:  newActionsClient(config, log),
 	}
 }
