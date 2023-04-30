@@ -59,9 +59,9 @@ func Test_services_Create(t *testing.T) {
 			if tt.svc == nil {
 				tt.svc = &Service{}
 			}
-			httpmock.RegisterResponder("GET", fmt.Sprintf("https://localhost:5665/v1/objects/services/%s!%s", tt.svc.Host, tt.svc.Name),
+			httpmock.RegisterResponder("GET", fmt.Sprintf("https://localhost:5665/v1/objects/services/%s", tt.svc.Name),
 				httpmock.NewStringResponder(tt.codeGet, tt.bodyGet))
-			httpmock.RegisterResponder("PUT", fmt.Sprintf("https://localhost:5665/v1/objects/services/%s!%s", tt.svc.Host, tt.svc.Name),
+			httpmock.RegisterResponder("PUT", fmt.Sprintf("https://localhost:5665/v1/objects/services/%s", tt.svc.Name),
 				httpmock.NewStringResponder(tt.codePost, "does not matter"))
 
 			if err := c.Create(context.Background(), tt.svc); (err != nil) != tt.wantErr {
@@ -81,7 +81,6 @@ func testService() *Service {
 			},
 			CheckCommand: "test",
 		},
-		Host: "localhost",
 	}
 }
 

@@ -12,10 +12,33 @@ import (
 	"github.com/puffitos/goicinga/pkg/client"
 )
 
+type ServiceState int
+
+const (
+	ServiceOk ServiceState = iota
+	ServiceWarning
+	ServiceCritical
+	ServiceUnknown
+)
+
+type Service struct {
+	CheckableAttrs
+	DisplayName       string    `json:"display_name"`
+	Groups            []string  `json:"groups"`
+	HostName          string    `json:"host_name"`
+	LastHardState     int       `json:"last_hard_state"`
+	LastState         int       `json:"last_state"`
+	LastStateCritical time.Time `json:"last_state_critical"`
+	LastStateOK       time.Time `json:"last_state_ok"`
+	LastStateUnknown  time.Time `json:"last_state_unknown"`
+	LastStateWarning  time.Time `json:"last_state_warning"`
+	State             int       `json:"state"`
+}
+
 type Services interface {
-	Get(ctx context.Context, host, name string) (*Service, error)
+	Get(ctx context.Context, name string) (*Service, error)
 	Create(ctx context.Context, svc *Service) error
-	Delete(ctx context.Context, svc *Service) error
+	Delete(ctx context.Context, name string, cascade bool) error
 }
 
 // services implements the Services interface.
@@ -31,9 +54,9 @@ func newServicesClient(cfg *client.Config, log *logr.Logger) *services {
 
 // Create creates a new types in Icinga with the given name, if it doesn't already exist.
 func (c *services) Create(ctx context.Context, svc *Service) error {
-	url := fmt.Sprintf("%s/objects/services/%s!%s", c.ic.Config.BaseURL, svc.Host, svc.Name)
+	url := fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, svc.Name)
 
-	got, err := c.Get(ctx, svc.Host, svc.Name)
+	got, err := c.Get(ctx, svc.Name)
 	if got != nil {
 		return nil
 	}
@@ -74,10 +97,17 @@ func (c *services) Create(ctx context.Context, svc *Service) error {
 }
 
 // Delete deletes the given service from Icinga.
-func (c *services) Delete(ctx context.Context, svc *Service) error {
-	url := fmt.Sprintf("%s/objects/services/%s!%s", c.ic.Config.BaseURL, svc.Host, svc.Name)
-
-	r, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+func (c *services) Delete(ctx context.Context, name string, cascade bool) error {
+	url := fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, name)
+	type deleteServiceRequest struct {
+		Cascade bool `json:"cascade"`
+	}
+	p, err := json.Marshal(&deleteServiceRequest{Cascade: cascade})
+	if err != nil {
+		c.ic.Log.Error(err, "failed marshalling delete-service request")
+		return err
+	}
+	r, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, bytes.NewReader(p))
 	if err != nil {
 		c.ic.Log.Error(err, "failed creating delete-service request")
 	}
@@ -101,15 +131,16 @@ func (c *services) Delete(ctx context.Context, svc *Service) error {
 }
 
 // Get returns the service with the given name on the given host.
-func (c *services) Get(ctx context.Context, host, name string) (*Service, error) {
-	if host == "" || name == "" {
+func (c *services) Get(ctx context.Context, name string) (*Service, error) {
+	if name == "" {
 		return nil, fmt.Errorf("service host or name cannot be empty")
 	}
 
-	url := fmt.Sprintf("%s/objects/services/%s!%s", c.ic.Config.BaseURL, host, name)
+	url := fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, name)
 	r, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		c.ic.Log.Error(err, "failed creating get-services request")
+		return nil, err
 	}
 	resp, closer, err := c.ic.Call(r) //nolint:bodyclose
 	if err != nil {
@@ -132,52 +163,5 @@ func (c *services) Get(ctx context.Context, host, name string) (*Service, error)
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("failed getting service %s on host %s: %s", name, host, resp.Status)
-}
-
-type ServiceState int
-
-const (
-	ServiceOk ServiceState = iota
-	ServiceWarning
-	ServiceCritical
-	ServiceUnknown
-)
-
-type Service struct {
-	CheckableAttrs
-	DisplayName       string    `json:"display_name"`
-	Groups            []string  `json:"groups"`
-	Host              string    `json:"host"` // TODO: change to host struct
-	HostName          string    `json:"host_name"`
-	LastHardState     int       `json:"last_hard_state"`
-	LastState         int       `json:"last_state"`
-	LastStateCritical time.Time `json:"last_state_critical"`
-	LastStateOK       time.Time `json:"last_state_ok"`
-	LastStateUnknown  time.Time `json:"last_state_unknown"`
-	LastStateWarning  time.Time `json:"last_state_warning"`
-	State             int       `json:"state"`
-}
-
-//// ServiceAttrs are the attributes of a Service instance.
-// type ServiceAttrs struct {
-//	// The service name. Must be unique on a per-host basis. For advanced usage in apply rules only.
-//	Name string `json:"name"`
-//	// A short description of the service.
-//	DisplayName string `json:"display_name,omitempty"`
-//	// The host this service belongs to. There must be a Host object with that name.
-//	HostName string `json:"host_name"`
-//	// The service groups this service belongs to.
-//	Groups []string `json:"groups,omitempty"`
-//	// A map containing custom variables that are specific to this service.
-//	Vars map[string]interface{} `json:"vars,omitempty"`
-//	CheckableAttrs
-//}
-
-type ConfigObject struct {
-	Attrs ConfigObjectAttrs `json:"attrs"`
-	Joins struct{}          `json:"joins"`
-	Meta  struct{}          `json:"meta"`
-	Name  string            `json:"name"`
-	Type  string            `json:"type"`
+	return nil, fmt.Errorf("failed getting service %s: %s", name, resp.Status)
 }

@@ -31,7 +31,7 @@ func newActionsClient(cfg *client.Config, log *logr.Logger) Actions {
 func (c *actions) ProcessCheckResult(ctx context.Context, srv *Service) error {
 	pu := &UpdateCheckOutputRequest{
 		Type:            "Service",
-		Filter:          fmt.Sprintf("host.name==\"%s\" && types.name==\"%s\"", srv.Host, srv.Name),
+		Filter:          fmt.Sprintf("host.name==\"%s\" && types.name==\"%s\"", srv.HostName, srv.Name),
 		ExitStatus:      srv.LastCheckResult.ExitStatus,
 		PluginOutput:    srv.LastCheckResult.Output,
 		PerformanceData: srv.LastCheckResult.PerformanceData,
