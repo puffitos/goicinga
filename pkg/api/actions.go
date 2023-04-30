@@ -32,9 +32,9 @@ func (c *actions) ProcessCheckResult(ctx context.Context, srv *Service) error {
 	pu := &UpdateCheckOutputRequest{
 		Type:            "Service",
 		Filter:          fmt.Sprintf("host.name==\"%s\" && types.name==\"%s\"", srv.Host, srv.Name),
-		ExitStatus:      srv.ExitStatus,
-		PluginOutput:    srv.Output,
-		PerformanceData: srv.PerfData,
+		ExitStatus:      srv.LastCheckResult.ExitStatus,
+		PluginOutput:    srv.LastCheckResult.Output,
+		PerformanceData: srv.LastCheckResult.PerformanceData,
 	}
 
 	p, err := json.Marshal(pu)

@@ -30,26 +30,16 @@ func Test_services_Create(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "success",
-			svc: &Service{
-				Name: "test",
-				Host: "localhost",
-				Attributes: &ServiceAttrs{
-					CheckCommand: "test",
-				},
-			},
+			name:     "success",
+			svc:      testService(),
 			codeGet:  http.StatusNotFound,
 			bodyGet:  `{"error":"Object not found."}`,
 			codePost: http.StatusOK,
 			wantErr:  false,
 		},
 		{
-			// TODO: fix
-			name: "service already exists",
-			svc: &Service{
-				Name: "test",
-				Host: "localhost",
-			},
+			name:     "service already exists",
+			svc:      testService(),
 			codeGet:  http.StatusOK,
 			bodyGet:  `{"attrs": {"name":"test"}}`,
 			codePost: 0,
@@ -78,6 +68,20 @@ func Test_services_Create(t *testing.T) {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func testService() *Service {
+	return &Service{
+		CheckableAttrs: CheckableAttrs{
+			CustomVarAttrs: CustomVarAttrs{
+				ConfigObjectAttrs: ConfigObjectAttrs{
+					Name: "test-host!test-service",
+				},
+			},
+			CheckCommand: "test",
+		},
+		Host: "localhost",
 	}
 }
 

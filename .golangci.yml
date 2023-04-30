@@ -27,6 +27,7 @@ linters:
     - nolintlint
     - revive
     - staticcheck
+    - structcheck
     - stylecheck
     - typecheck
     - unconvert
@@ -38,3 +39,7 @@ run:
   timeout: 5m
   skip-files:
     - .*_test\.go
+
+linters-settings:
+  structcheck:
+    sortfields: true
