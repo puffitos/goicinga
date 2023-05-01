@@ -1,6 +1,9 @@
 package api
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Object Hierarchy in Icinga2
 // Object -> ConfigObject -> CustomVar -> Checkable -> Host/Service
@@ -164,10 +167,10 @@ type CheckResult struct {
 	Command []string `json:"command,omitempty"`
 	// The exit status returned by the check execution.
 	ExitStatus int `json:"exit_status,omitempty"`
-	// The current ServiceState.
-	State ServiceState `json:"state,omitempty"`
-	// The previous hard ServiceState.
-	PreviousHardState ServiceState `json:"previous_hard_state,omitempty"`
+	// The current ServiceState / HostState.
+	State int `json:"state,omitempty"`
+	// The previous hard ServiceState / HostState.
+	PreviousHardState int `json:"previous_hard_state,omitempty"`
 	// The check output.
 	Output string `json:"output,omitempty"`
 	// Array of performance data values.
@@ -218,11 +221,36 @@ type CreateObjectRequest[T Attributes] struct {
 	IgnoredOnError bool     `json:"ignore_on_error,omitempty"`
 }
 
-// ObjectQueryResult represents the result of a query to the icinga Objects endpoint.
+// ObjectQueryResult represents the api representation of a single Icinga object.
 type ObjectQueryResult struct {
 	Name  string                 `json:"name"`
 	Type  string                 `json:"type"`
 	Attrs map[string]interface{} `json:"attrs"`
 	Joins map[string]interface{} `json:"joins"`
 	Meta  map[string]interface{} `json:"meta"`
+}
+
+// ObjectQueryResults represents the results of a query to the icinga Objects endpoint.
+type ObjectQueryResults struct {
+	Results []ObjectQueryResult `json:"results"`
+}
+
+func (r ObjectQueryResult) MarshalJSON() ([]byte, error) {
+	type Alias ObjectQueryResult
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&r),
+	})
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (r *ObjectQueryResult) UnmarshalJSON(data []byte) error {
+	type Alias ObjectQueryResult
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	return json.Unmarshal(data, &aux)
 }

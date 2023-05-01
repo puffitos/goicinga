@@ -9,41 +9,38 @@ import (
 
 	"github.com/go-logr/zapr"
 	"github.com/jarcoal/httpmock"
-	"github.com/puffitos/goicinga/pkg/client"
 	"go.uber.org/zap"
 )
 
 func Test_services_Create(t *testing.T) {
 	tests := []struct {
-		name     string
-		svc      *Service
-		codeGet  int
-		bodyGet  string
-		codePost int
+		name string
+		svc  *Service
+
+		mockBody string
+		mockCode int
 		wantErr  bool
 	}{
 		{
 			name:     "nil service",
 			svc:      nil,
-			codeGet:  0,
-			codePost: 0,
+			mockBody: "",
+			mockCode: 0,
 			wantErr:  true,
 		},
 		{
 			name:     "success",
 			svc:      testService(),
-			codeGet:  http.StatusNotFound,
-			bodyGet:  `{"error":404, "status": "Object not found."}`,
-			codePost: http.StatusOK,
+			mockBody: `{"results":[{"code":200.0,"name":"test","status":"Successfully created object 'test' of type 'Service'."}]}`,
+			mockCode: http.StatusOK,
 			wantErr:  false,
 		},
 		{
 			name:     "service already exists",
 			svc:      testService(),
-			codeGet:  http.StatusOK,
-			bodyGet:  `{"attrs": {"name":"test"}}`,
-			codePost: 0,
-			wantErr:  false,
+			mockBody: `{"error":409,"status":"Object 'test' of type 'Service' already exists."}`,
+			mockCode: http.StatusConflict,
+			wantErr:  true,
 		},
 	}
 
@@ -59,10 +56,8 @@ func Test_services_Create(t *testing.T) {
 			if tt.svc == nil {
 				tt.svc = &Service{}
 			}
-			httpmock.RegisterResponder("GET", fmt.Sprintf("https://icinga-server:5665/v1/objects/services/%s", tt.svc.Name),
-				httpmock.NewStringResponder(tt.codeGet, tt.bodyGet))
 			httpmock.RegisterResponder("PUT", fmt.Sprintf("https://icinga-server:5665/v1/objects/services/%s", tt.svc.Name),
-				httpmock.NewStringResponder(tt.codePost, "does not matter"))
+				httpmock.NewStringResponder(tt.mockCode, tt.mockBody))
 
 			if err := c.Create(context.Background(), tt.svc); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
@@ -154,8 +149,8 @@ func testService() *Service {
 }
 
 // newTestClient returns a new Icinga client for testing.
-func newTestClient() *client.Icinga {
-	cfg := &client.Config{
+func newTestClient() *Icinga {
+	cfg := &Config{
 		BaseURL: "https://icinga-server:5665/v1",
 		APIUser: "root",
 		APIPass: "root",
@@ -163,5 +158,5 @@ func newTestClient() *client.Icinga {
 	}
 
 	l := zapr.NewLogger(zap.NewExample().Named("test"))
-	return client.New(cfg, &l)
+	return New(cfg, &l)
 }

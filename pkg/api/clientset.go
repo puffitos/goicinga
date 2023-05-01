@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/puffitos/goicinga/pkg/client"
 )
 
 // API is the interface that groups all the clients that communicate with the icinga API
@@ -29,7 +28,7 @@ func (c *ClientSet) Actions() Actions {
 }
 
 // NewClientSet creates a new client with the given configuration
-func NewClientSet(config *client.Config, log *logr.Logger) *ClientSet {
+func NewClientSet(config *Config, log *logr.Logger) *ClientSet {
 	return &ClientSet{
 		services: newServicesClient(config, log),
 		hosts:    newHostsClient(config, log),
