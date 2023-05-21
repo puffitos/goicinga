@@ -58,8 +58,7 @@ func (s *Service) UnmarshalJSON(data []byte) error {
 			case "State":
 				typ = reflect.TypeOf(ServiceState(0))
 			case "Groups":
-				// iterate over the slice and convert each element to the correct type.
-				slice := reflect.MakeSlice(typ, 0, 0)
+				slice := reflect.MakeSlice(typ, len(oqrv.([]interface{})), len(oqrv.([]interface{})))
 				for _, e := range oqrv.([]interface{}) {
 					slice = reflect.Append(slice, reflect.ValueOf(e))
 				}
@@ -67,11 +66,7 @@ func (s *Service) UnmarshalJSON(data []byte) error {
 				continue
 			}
 			if typ == reflect.TypeOf(time.Time{}) {
-				// Convert the time string to a time.Time object.
-				// The time string is a unix timestamp in the format
-				// seconds.nanoseconds
 				seconds := int64(oqrv.(float64))
-
 				nanoseconds := int64((oqrv.(float64) - float64(seconds)) * Ms)
 				t := time.Unix(seconds, nanoseconds).UTC()
 				elem.FieldByName(v.Name).Set(reflect.ValueOf(t))

@@ -52,9 +52,6 @@ func (h *Host) UnmarshalJSON(data []byte) error {
 				typ = reflect.TypeOf(HostState(0))
 			}
 			if typ == reflect.TypeOf(time.Time{}) {
-				// Convert the time string to a time.Time object.
-				// The time string is a unix timestamp in the format
-				// seconds.nanoseconds
 				seconds := int64(oqrv.(float64))
 				nanoseconds := int64((oqrv.(float64) - float64(seconds)) * Ms)
 				t := time.Unix(seconds, nanoseconds).UTC()
