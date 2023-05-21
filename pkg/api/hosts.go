@@ -48,8 +48,18 @@ func (h *Host) UnmarshalJSON(data []byte) error {
 			typ := v.Type
 			// The State field is of type HostState, but the API returns an int.
 			// This makes sure that the CheckResult.State field is of type HostState.
-			if v.Name == "State" && typ.Kind() == reflect.Int {
+			if v.Name == "State" {
 				typ = reflect.TypeOf(HostState(0))
+			}
+			if typ == reflect.TypeOf(time.Time{}) {
+				// Convert the time string to a time.Time object.
+				// The time string is a unix timestamp in the format
+				// seconds.nanoseconds
+				seconds := int64(oqrv.(float64))
+				nanoseconds := int64((oqrv.(float64) - float64(seconds)) * Ms)
+				t := time.Unix(seconds, nanoseconds).UTC()
+				elem.FieldByName(v.Name).Set(reflect.ValueOf(t))
+				continue
 			}
 			value := reflect.ValueOf(oqrv).Convert(typ)
 			elem.FieldByName(v.Name).Set(value)
@@ -71,8 +81,8 @@ func getStructFields(t reflect.Type) []reflect.StructField {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
-		// If the field is a struct, recursively get its fields.
-		if field.Type.Kind() == reflect.Struct {
+		// Structs must be handled recursively.
+		if field.Type.Kind() == reflect.Struct && field.Type != reflect.TypeOf(time.Time{}) {
 			nestedFields := getStructFields(field.Type)
 			fields = append(fields, nestedFields...)
 		} else {

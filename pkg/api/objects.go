@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const Ms = 1e9
+
 // Object Hierarchy in Icinga2
 // Object -> ConfigObject -> CustomVar -> Checkable -> Host/Service
 

@@ -62,8 +62,7 @@ func Test_hosts_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := c.Get(context.Background(), tt.hostName)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("Get() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err == nil && !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Get() got = %v, wantFields %v", got, tt.want)
@@ -89,7 +88,6 @@ func testHostQueryResult() string {
 	}
 
 	b, _ := qr.MarshalJSON()
-
 	return string(b)
 }
 
