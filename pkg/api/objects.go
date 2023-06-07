@@ -7,7 +7,7 @@ import (
 
 const Ms = 1e9
 
-// Object Hierarchy in Icinga2
+// Object Hierarchy in Icinga2, mimicked by embedding structs
 // Object -> ConfigObject -> CustomVar -> Checkable -> Host/Service
 
 // Attributes represents the attributes of a creatable Icinga object.
