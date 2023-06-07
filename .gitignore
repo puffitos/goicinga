@@ -21,3 +21,6 @@
 # Go workspace file
 go.work
 
+# Icinga files
+/icinga-agent.ticket
+/icinga-ca.crt
