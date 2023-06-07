@@ -121,7 +121,9 @@ func (r *Request) Call(ctx context.Context) *Result {
 		res.err = r.err
 		return &res
 	}
-	r.c.Log.V(1).Info("calling icinga api", "endpoint", r.endpoint, "object", r.object, "method", r.verb, "body", r.body)
+	r.c.Log.V(1).Info("calling icinga api",
+		"endpoint", r.endpoint, "object", r.object,
+		"method", r.verb, "body", r.body != nil)
 	req, err := http.NewRequestWithContext(
 		ctx,
 		r.verb,
