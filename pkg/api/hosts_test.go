@@ -71,6 +71,77 @@ func Test_hosts_Get(t *testing.T) {
 	}
 }
 
+// func Test_hosts_Create tests the creation of a host.
+// It also tests the typical error cases, such as empty host name, nil host object, etc.
+func Test_hosts_Create(t *testing.T) {
+	tests := []struct {
+		name     string
+		host     *Host
+		wantCode int
+		wantBody string
+		wantErr  bool
+	}{
+		{
+			name:     "nil host",
+			host:     nil,
+			wantCode: 0,
+			wantBody: "",
+			wantErr:  true,
+		},
+		{
+			name:     "empty host name",
+			host:     &Host{},
+			wantCode: 0,
+			wantBody: "",
+			wantErr:  true,
+		},
+		{
+			name:     "success",
+			host:     testHost(),
+			wantCode: http.StatusOK,
+			wantBody: `{"results":[ { "code": 200, "status": "Object was created"}]}`,
+			wantErr:  false,
+		},
+		{
+			name:     "host already exists",
+			host:     testHost(),
+			wantCode: http.StatusConflict,
+			wantBody: `{"results":[ { "code": 409, "status": "Object already exists"}]}`,
+			wantErr:  true,
+		},
+	}
+
+	c := hosts{
+		ic: newTestClient(),
+	}
+
+	httpmock.ActivateNonDefault(c.ic.Client)
+	defer httpmock.DeactivateAndReset()
+
+	for _, tt := range tests {
+
+		var responder httpmock.Responder
+		if tt.wantErr {
+			responder = httpmock.NewErrorResponder(fmt.Errorf("error creating host"))
+		} else {
+			responder = httpmock.NewStringResponder(tt.wantCode, tt.wantBody)
+		}
+
+		if tt.host != nil {
+			httpmock.RegisterResponder("PUT",
+				fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.host.Name),
+				responder)
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.Create(context.Background(), tt.host)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Create() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 // testHostQueryResult creates a QueryResult object for a host returned by the testHostfunction,
 // and the marshals it to a json string.
 func testHostQueryResult() string {

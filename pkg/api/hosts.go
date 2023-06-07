@@ -128,3 +128,23 @@ func (c *hosts) Get(ctx context.Context, name string) (*Host, error) {
 		Into(&res)
 	return &res, err
 }
+
+// Create creates the given host.
+func (c *hosts) Create(ctx context.Context, host *Host) error {
+	if host == nil {
+		return fmt.Errorf("host cannot be nil")
+	}
+
+	b := &CreateObjectRequest[CheckableAttrs]{
+		Templates: host.Templates,
+		Attrs:     host.CheckableAttrs,
+	}
+
+	res := c.ic.Put().
+		Endpoint("objects").
+		Type("hosts").
+		Object(host.Name).
+		Body(b).
+		Call(ctx)
+	return res.Error()
+}

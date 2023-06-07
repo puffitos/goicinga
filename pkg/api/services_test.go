@@ -122,7 +122,7 @@ func Test_services_Create(t *testing.T) {
 			if tt.svc == nil {
 				tt.svc = &Service{}
 			}
-			httpmock.RegisterResponder("PUT", fmt.Sprintf("https://icinga-server:5665/v1/objects/services/%s", tt.svc.Name),
+			httpmock.RegisterResponder("PUT", fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, tt.svc.Name),
 				httpmock.NewStringResponder(tt.mockCode, tt.mockBody))
 
 			if err := c.Create(context.Background(), tt.svc); (err != nil) != tt.wantErr {
