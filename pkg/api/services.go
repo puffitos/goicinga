@@ -105,7 +105,7 @@ func newServicesClient(cfg *Config, log *logr.Logger) *services {
 // Get returns the service with the given name on the given host.
 func (c *services) Get(ctx context.Context, name string) (*Service, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name cannot be empty")
+		return nil, &NoIdentifierError{Object: "service"}
 	}
 	var res Service
 	err := c.ic.Get().
@@ -139,10 +139,11 @@ func (c *services) Create(ctx context.Context, svc *Service) error {
 
 // Delete deletes the given service from Icinga.
 func (c *services) Delete(ctx context.Context, name string, cascade bool) error {
-	type deleteServiceRequest struct {
-		Cascade bool `json:"cascade"`
+	if name == "" {
+		return &NoIdentifierError{Object: "service"}
 	}
-	b := &deleteServiceRequest{Cascade: cascade}
+
+	b := &deleteObjectRequest{Cascade: cascade}
 
 	res := c.ic.Delete().
 		Endpoint("objects").

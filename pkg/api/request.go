@@ -65,7 +65,7 @@ func (r *Request) Type(typ string) *Request {
 // Object sets the object for the request
 func (r *Request) Object(object string) *Request {
 	if object == "" {
-		r.err = fmt.Errorf("object must not be empty")
+		r.err = &NoIdentifierError{Object: object}
 		return r
 	}
 	r.object = object
@@ -124,6 +124,7 @@ func (r *Request) Call(ctx context.Context) *Result {
 	r.c.Log.V(1).Info("calling icinga api",
 		"endpoint", r.endpoint, "object", r.object,
 		"method", r.verb, "body", r.body != nil)
+
 	req, err := http.NewRequestWithContext(
 		ctx,
 		r.verb,

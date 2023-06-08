@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
 // IcingaError is the error returned by the icinga API
@@ -29,10 +28,11 @@ func WrapError(body []byte) error {
 	return &apiError
 }
 
-// IsNotFound returns true if the given error is of type IcingaError is a 404.
-func IsNotFound(err error) bool {
-	if e, ok := err.(*IcingaError); ok {
-		return e.Err == http.StatusNotFound
-	}
-	return false
+type NoIdentifierError struct {
+	// The type of the object
+	Object string
+}
+
+func (e *NoIdentifierError) Error() string {
+	return fmt.Sprintf("no identifier provided for object %s", e.Object)
 }

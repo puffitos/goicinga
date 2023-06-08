@@ -10,7 +10,7 @@ const Ms = 1e9
 // Object Hierarchy in Icinga2, mimicked by embedding structs
 // Object -> ConfigObject -> CustomVar -> Checkable -> Host/Service
 
-// Attributes represents the attributes of a creatable Icinga object.
+// Attributes represents the attributes of a creatable icinga object.
 type Attributes interface {
 	CheckableAttrs | ConfigObjectAttrs | ObjectAttrs | CustomVarAttrs
 }
@@ -215,7 +215,7 @@ type ObjectQuery struct {
 	Joins      []string               `json:"joins,omitempty"`
 }
 
-// CreateObjectRequest is the request body for creating a new config object in Icinga.
+// CreateObjectRequest is the request body for creating a new config object in icinga.
 // T represents the type of the attributes of the config object to create.
 type CreateObjectRequest[T Attributes] struct {
 	Templates      []string `json:"templates,omitempty"`
@@ -223,7 +223,12 @@ type CreateObjectRequest[T Attributes] struct {
 	IgnoredOnError bool     `json:"ignore_on_error,omitempty"`
 }
 
-// ObjectQueryResult represents the api representation of a single Icinga object.
+// deleteObjectRequest is the request body for deleting a config object in icinga.
+type deleteObjectRequest struct {
+	Cascade bool `json:"cascade"`
+}
+
+// ObjectQueryResult represents the api representation of a single icinga object.
 type ObjectQueryResult struct {
 	Name  string                 `json:"name"`
 	Type  string                 `json:"type"`
@@ -237,12 +242,12 @@ type ObjectQueryResults struct {
 	Results []ObjectQueryResult `json:"results"`
 }
 
-func (r ObjectQueryResult) MarshalJSON() ([]byte, error) {
+func (r *ObjectQueryResult) MarshalJSON() ([]byte, error) {
 	type Alias ObjectQueryResult
 	return json.Marshal(&struct {
 		*Alias
 	}{
-		Alias: (*Alias)(&r),
+		Alias: (*Alias)(r),
 	})
 }
 

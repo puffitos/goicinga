@@ -116,7 +116,7 @@ func newHostsClient(cfg *Config, log *logr.Logger) *hosts {
 // Get returns the host with the given name, or nil if it doesn't exist.
 func (c *hosts) Get(ctx context.Context, name string) (*Host, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name cannot be empty")
+		return nil, &NoIdentifierError{Object: "host"}
 	}
 	var res Host
 	err := c.ic.
@@ -144,6 +144,25 @@ func (c *hosts) Create(ctx context.Context, host *Host) error {
 		Endpoint("objects").
 		Type("hosts").
 		Object(host.Name).
+		Body(b).
+		Call(ctx)
+	return res.Error()
+}
+
+// Delete deletes the host with the given name.
+func (c *hosts) Delete(ctx context.Context, name string, cascade bool) error {
+	if name == "" {
+		return &NoIdentifierError{Object: "host"}
+	}
+
+	b := &deleteObjectRequest{
+		Cascade: cascade,
+	}
+
+	res := c.ic.Delete().
+		Endpoint("objects").
+		Type("hosts").
+		Object(name).
 		Body(b).
 		Call(ctx)
 	return res.Error()
