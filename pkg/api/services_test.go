@@ -58,9 +58,8 @@ func Test_services_Get(t *testing.T) {
 
 	for _, tt := range tests {
 
-		httpmock.RegisterResponder("GET",
-			fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, tt.svcName),
-			httpmock.NewStringResponder(tt.wantCode, tt.wantBody))
+		url := fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, tt.svcName)
+		setupMockResponders(t, url, http.MethodGet, tt.wantCode, tt.wantBody, tt.wantErr)
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := c.Get(context.Background(), tt.svcName)
@@ -95,6 +94,13 @@ func Test_services_Create(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "empty service name",
+			svc:      &Service{},
+			mockBody: "",
+			mockCode: 0,
+			wantErr:  true,
+		},
+		{
 			name:     "success",
 			svc:      testService(),
 			mockBody: `{"results":[{"code":200.0,"name":"test","status":"Successfully created object 'test' of type 'Service'."}]}`,
@@ -119,11 +125,11 @@ func Test_services_Create(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.svc == nil {
-				tt.svc = &Service{}
+			var url string
+			if tt.svc != nil {
+				url = fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, tt.svc.Name)
 			}
-			httpmock.RegisterResponder("PUT", fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, tt.svc.Name),
-				httpmock.NewStringResponder(tt.mockCode, tt.mockBody))
+			setupMockResponders(t, url, http.MethodPut, tt.mockCode, tt.mockBody, tt.wantErr)
 
 			if err := c.Create(context.Background(), tt.svc); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
@@ -174,6 +180,16 @@ func Test_services_Delete(t *testing.T) {
 			wantBody: "",
 			wantErr:  true,
 		},
+		{
+			name: "no name provided",
+			args: args{
+				name:    "",
+				cascade: false,
+			},
+			wantCode: 0,
+			wantBody: "",
+			wantErr:  true,
+		},
 	}
 
 	c := &services{
@@ -185,13 +201,11 @@ func Test_services_Delete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpmock.RegisterResponder("DELETE",
-				fmt.Sprintf("https://icinga-server:5665/v1/objects/services/%s", tt.args.name),
-				httpmock.NewStringResponder(tt.wantCode, tt.wantBody))
-
-			if tt.name == "fail reading body" {
-				httpmock.NewErrorResponder(fmt.Errorf("client error"))
+			var url string
+			if tt.args.name != "" {
+				url = fmt.Sprintf("%s/objects/services/%s", c.ic.Config.BaseURL, tt.args.name)
 			}
+			setupMockResponders(t, url, http.MethodDelete, tt.wantCode, tt.wantBody, tt.wantErr)
 
 			if err := c.Delete(context.Background(), tt.args.name, tt.args.cascade); (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)

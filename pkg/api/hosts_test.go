@@ -55,9 +55,8 @@ func Test_hosts_Get(t *testing.T) {
 
 	for _, tt := range tests {
 
-		httpmock.RegisterResponder("GET",
-			fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.hostName),
-			httpmock.NewStringResponder(tt.wantCode, tt.wantBody))
+		url := fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.hostName)
+		setupMockResponders(t, url, http.MethodGet, tt.wantCode, tt.wantBody, tt.wantErr)
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := c.Get(context.Background(), tt.hostName)
@@ -71,8 +70,6 @@ func Test_hosts_Get(t *testing.T) {
 	}
 }
 
-// func Test_hosts_Create tests the creation of a host.
-// It also tests the typical error cases, such as empty host name, nil host object, etc.
 func Test_hosts_Create(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -120,18 +117,11 @@ func Test_hosts_Create(t *testing.T) {
 
 	for _, tt := range tests {
 
-		var responder httpmock.Responder
-		if tt.wantErr {
-			responder = httpmock.NewErrorResponder(fmt.Errorf("error creating host"))
-		} else {
-			responder = httpmock.NewStringResponder(tt.wantCode, tt.wantBody)
-		}
-
+		var url string
 		if tt.host != nil {
-			httpmock.RegisterResponder("PUT",
-				fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.host.Name),
-				responder)
+			url = fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.host.Name)
 		}
+		setupMockResponders(t, url, http.MethodPut, tt.wantCode, tt.wantBody, tt.wantErr)
 
 		t.Run(tt.name, func(t *testing.T) {
 			err := c.Create(context.Background(), tt.host)
@@ -142,102 +132,55 @@ func Test_hosts_Create(t *testing.T) {
 	}
 }
 
-// testHostQueryResult creates a QueryResult object for a host returned by the testHostfunction,
-// and the marshals it to a json string.
-func testHostQueryResult() string {
-	h := testHost()
-	qr := ObjectQueryResult{
-		Name: h.Name,
-		Type: h.Type,
-		Attrs: map[string]interface{}{
-			"address":      h.Address,
-			"display_name": h.DisplayName,
-			"state":        h.State,
-		},
-		Joins: nil,
-		Meta:  nil,
-	}
-
-	b, _ := qr.MarshalJSON()
-	return string(b)
-}
-
-func TestHost_UnmarshalJSON(t *testing.T) {
-	type fields struct {
-		CheckableAttrs CheckableAttrs
-		DisplayName    string
-		Address        string
-		Address6       string
-		Groups         []string
-		LastHardState  int
-		LastState      int
-		LastStateDown  time.Time
-		LastStateUp    time.Time
-		State          HostState
-	}
-	type args struct {
-		data []byte
-	}
+func Test_hosts_Delete(t *testing.T) {
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name     string
+		hostName string
+		wantCode int
+		wantBody string
+		wantErr  bool
 	}{
 		{
-			name:    "empty data",
-			args:    args{data: []byte("")},
-			fields:  fields{},
-			wantErr: true,
+			name:     "empty host name",
+			hostName: "",
+			wantCode: 0,
+			wantBody: "",
+			wantErr:  true,
 		},
 		{
-			name:    "invalid data",
-			args:    args{data: []byte(`{"test": "test"}`)},
-			fields:  fields{},
-			wantErr: true,
+			name:     "host not found",
+			hostName: "test",
+			wantCode: http.StatusNotFound,
+			wantBody: `{"results":[ { "code": 404, "status": "Object not found"}]}`,
+			wantErr:  true,
+		},
+		{
+			name:     "success",
+			hostName: "test",
+			wantCode: http.StatusOK,
+			wantBody: `{"results":[ { "code": 200, "status": "Object was deleted"}]}`,
+			wantErr:  false,
 		},
 	}
+
+	c := hosts{
+		ic: newTestClient(),
+	}
+
+	httpmock.ActivateNonDefault(c.ic.Client)
+	defer httpmock.DeactivateAndReset()
+
 	for _, tt := range tests {
+
+		url := fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.hostName)
+		setupMockResponders(t, url, http.MethodDelete, tt.wantCode, tt.wantBody, tt.wantErr)
+
 		t.Run(tt.name, func(t *testing.T) {
-			h := &Host{}
-			if err := h.UnmarshalJSON(tt.args.data); (err != nil) != tt.wantErr {
-				t.Errorf("UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			expected := &Host{
-				CheckableAttrs: tt.fields.CheckableAttrs,
-				DisplayName:    tt.fields.DisplayName,
-				Address:        tt.fields.Address,
-				Address6:       tt.fields.Address6,
-				Groups:         tt.fields.Groups,
-				LastHardState:  tt.fields.LastHardState,
-				LastState:      tt.fields.LastState,
-				LastStateDown:  tt.fields.LastStateDown,
-				LastStateUp:    tt.fields.LastStateUp,
-				State:          tt.fields.State,
-			}
-			if !reflect.DeepEqual(h, expected) {
-				t.Errorf("UnmarshalJSON() got = %v, wantFields %v", h, expected)
+			err := c.Delete(context.Background(), tt.hostName, false)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-	}
-}
-
-// testHost returns a test host object.
-func testHost() *Host {
-	return &Host{
-		CheckableAttrs: CheckableAttrs{
-			CustomVarAttrs: CustomVarAttrs{
-				ConfigObjectAttrs: ConfigObjectAttrs{
-					Name: "test-host",
-					ObjectAttrs: ObjectAttrs{
-						Type: "Host",
-					},
-				},
-			},
-		},
-		DisplayName: "test-host",
-		Address:     "localhost",
-		State:       HostUp,
 	}
 }
 
@@ -326,5 +269,117 @@ func Test_getStructFields(t *testing.T) {
 				t.Errorf("getStructFields() = %v, wantFields %v", gotFields, tt.wantFields)
 			}
 		})
+	}
+}
+
+func TestHost_UnmarshalJSON(t *testing.T) {
+	type fields struct {
+		CheckableAttrs CheckableAttrs
+		DisplayName    string
+		Address        string
+		Address6       string
+		Groups         []string
+		LastHardState  int
+		LastState      int
+		LastStateDown  time.Time
+		LastStateUp    time.Time
+		State          HostState
+	}
+	type args struct {
+		data []byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "empty data",
+			args:    args{data: []byte("")},
+			fields:  fields{},
+			wantErr: true,
+		},
+		{
+			name:    "invalid data",
+			args:    args{data: []byte(`{"test": "test"}`)},
+			fields:  fields{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &Host{}
+			if err := h.UnmarshalJSON(tt.args.data); (err != nil) != tt.wantErr {
+				t.Errorf("UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			expected := &Host{
+				CheckableAttrs: tt.fields.CheckableAttrs,
+				DisplayName:    tt.fields.DisplayName,
+				Address:        tt.fields.Address,
+				Address6:       tt.fields.Address6,
+				Groups:         tt.fields.Groups,
+				LastHardState:  tt.fields.LastHardState,
+				LastState:      tt.fields.LastState,
+				LastStateDown:  tt.fields.LastStateDown,
+				LastStateUp:    tt.fields.LastStateUp,
+				State:          tt.fields.State,
+			}
+			if !reflect.DeepEqual(h, expected) {
+				t.Errorf("UnmarshalJSON() got = %v, wantFields %v", h, expected)
+			}
+		})
+	}
+}
+
+// setupMockResponders sets up the mock responders for the tests.
+func setupMockResponders(t *testing.T, url string, method string, code int, body string, err bool) {
+	t.Helper()
+	var responder httpmock.Responder
+	if err && body == "" {
+		responder = httpmock.NewErrorResponder(fmt.Errorf("error"))
+	} else {
+		responder = httpmock.NewStringResponder(code, body)
+	}
+
+	httpmock.RegisterResponder(method, url, responder)
+}
+
+// testHostQueryResult creates a QueryResult object for a host returned by the testHostfunction,
+// and the marshals it to a json string.
+func testHostQueryResult() string {
+	h := testHost()
+	qr := ObjectQueryResult{
+		Name: h.Name,
+		Type: h.Type,
+		Attrs: map[string]interface{}{
+			"address":      h.Address,
+			"display_name": h.DisplayName,
+			"state":        h.State,
+		},
+		Joins: nil,
+		Meta:  nil,
+	}
+
+	b, _ := qr.MarshalJSON()
+	return string(b)
+}
+
+// testHost returns a test host object.
+func testHost() *Host {
+	return &Host{
+		CheckableAttrs: CheckableAttrs{
+			CustomVarAttrs: CustomVarAttrs{
+				ConfigObjectAttrs: ConfigObjectAttrs{
+					Name: "test-host",
+					ObjectAttrs: ObjectAttrs{
+						Type: "Host",
+					},
+				},
+			},
+		},
+		DisplayName: "test-host",
+		Address:     "localhost",
+		State:       HostUp,
 	}
 }
