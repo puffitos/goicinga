@@ -39,6 +39,11 @@ type Config struct {
 
 // New creates a new icinga client with the passed configuration and logger
 func New(config *Config, log *logr.Logger) *Icinga {
+	if log == nil {
+		l := logr.Discard()
+		log = &l
+	}
+
 	return &Icinga{
 		Config: config,
 		Client: &http.Client{

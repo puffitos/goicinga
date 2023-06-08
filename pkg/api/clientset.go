@@ -35,6 +35,11 @@ func (c *ClientSet) Actions() Actions {
 
 // NewClientSet creates a new client with the given configuration
 func NewClientSet(config *Config, log *logr.Logger) *ClientSet {
+	if log == nil {
+		l := logr.Discard()
+		log = &l
+	}
+
 	return &ClientSet{
 		services: newServicesClient(config, log),
 		hosts:    newHostsClient(config, log),
