@@ -24,6 +24,10 @@ func newActionsClient(cfg *Config, log *logr.Logger) Actions {
 
 // ProcessCheckResult updates the given services check result in Icinga in the current host.
 func (c *actions) ProcessCheckResult(ctx context.Context, srv *Service) error {
+	if srv == nil {
+		return fmt.Errorf("service cannot be nil")
+	}
+
 	pu := &UpdateCheckOutputRequest{
 		Type:            "Service",
 		Filter:          fmt.Sprintf("host.name==\"%s\" && types.name==\"%s\"", srv.HostName, srv.Name),
