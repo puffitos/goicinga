@@ -7,6 +7,7 @@ import (
 // API is the interface that groups all the clients that communicate with the icinga API
 type API interface {
 	Services() Services
+	Hosts() Hosts
 	Actions() Actions
 }
 
@@ -20,6 +21,11 @@ type ClientSet struct {
 // Services returns the services client
 func (c *ClientSet) Services() Services {
 	return c.services
+}
+
+// Hosts returns the hosts client
+func (c *ClientSet) Hosts() Hosts {
+	return c.hosts
 }
 
 // Actions returns the actions client
