@@ -100,6 +100,9 @@ const (
 // Hosts is the interface for interacting with Icinga hosts.
 type Hosts interface {
 	Get(ctx context.Context, name string) (*Host, error)
+	Create(ctx context.Context, host *Host) error
+	Update(ctx context.Context, host *Host) error
+	Delete(ctx context.Context, name string, cascade bool) error
 }
 
 // hosts implements the Hosts interface.
@@ -127,6 +130,24 @@ func (c *hosts) Get(ctx context.Context, name string) (*Host, error) {
 		Call(ctx).
 		Into(&res)
 	return &res, err
+}
+
+func (c *hosts) Update(ctx context.Context, host *Host) error {
+	if host == nil {
+		return fmt.Errorf("host cannot be nil")
+	}
+
+	b := &UpdateObjectRequest[Host]{
+		Attrs: *host,
+	}
+
+	res := c.ic.Post().
+		Endpoint("objects").
+		Type("hosts").
+		Object(host.Name).
+		Body(b).
+		Call(ctx)
+	return res.Error()
 }
 
 // Create creates the given host.

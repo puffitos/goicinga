@@ -10,9 +10,14 @@ const Ms = 1e9
 // Object Hierarchy in Icinga2, mimicked by embedding structs
 // Object -> ConfigObject -> CustomVar -> Checkable -> Host/Service
 
-// Attributes represents the attributes of a creatable icinga object.
+// Attributes represents the attributes of an icinga object.
 type Attributes interface {
 	CheckableAttrs | ConfigObjectAttrs | ObjectAttrs | CustomVarAttrs
+}
+
+// Object represents icinga monitoring objects.
+type Object interface {
+	Host | Service
 }
 
 // ObjectAttrs represents the attributes of an icinga object.
@@ -223,6 +228,12 @@ type CreateObjectRequest[T Attributes] struct {
 	IgnoredOnError bool     `json:"ignore_on_error,omitempty"`
 }
 
+// UpdateObjectRequest is the request body for updating a config object in icinga.
+// T represents the type of object to update.
+type UpdateObjectRequest[T Object] struct {
+	Attrs T `json:"attrs"`
+}
+
 // deleteObjectRequest is the request body for deleting a config object in icinga.
 type deleteObjectRequest struct {
 	Cascade bool `json:"cascade"`
@@ -242,6 +253,7 @@ type ObjectQueryResults struct {
 	Results []ObjectQueryResult `json:"results"`
 }
 
+// MarshalJSON implements the json.Marshaler interface.
 func (r *ObjectQueryResult) MarshalJSON() ([]byte, error) {
 	type Alias ObjectQueryResult
 	return json.Marshal(&struct {

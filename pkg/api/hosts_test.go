@@ -132,6 +132,75 @@ func Test_hosts_Create(t *testing.T) {
 	}
 }
 
+func Test_hosts_Update(t *testing.T) {
+	tests := []struct {
+		name     string
+		host     *Host
+		wantCode int
+		wantBody string
+		wantErr  bool
+	}{
+		{
+			name:     "nil host",
+			host:     nil,
+			wantCode: 0,
+			wantBody: "",
+			wantErr:  true,
+		},
+		{
+			name:     "empty host name",
+			host:     &Host{},
+			wantCode: 0,
+			wantBody: "",
+			wantErr:  true,
+		},
+		{
+			name:     "success",
+			host:     testHost(),
+			wantCode: http.StatusOK,
+			wantBody: `{"results":[ { "code": 200, "status": "Object was updated"}]}`,
+			wantErr:  false,
+		},
+		{
+			name:     "host not found",
+			host:     testHost(),
+			wantCode: http.StatusNotFound,
+			wantBody: `{"results":[ { "code": 404, "status": "Object not found"}]}`,
+			wantErr:  true,
+		},
+		{
+			name:     "attribute could not be updated",
+			host:     testHost(),
+			wantCode: http.StatusInternalServerError,
+			wantBody: `{"results":[ { "code": 500, "name": "test-host", "status": "Attribute could not be set: Error: Attribute cannot be modified", "type": "Host"}]}`,
+			wantErr:  true,
+		},
+	}
+
+	c := hosts{
+		ic: newTestClient(),
+	}
+
+	httpmock.ActivateNonDefault(c.ic.Client)
+	defer httpmock.DeactivateAndReset()
+
+	for _, tt := range tests {
+
+		var url string
+		if tt.host != nil {
+			url = fmt.Sprintf("%s/objects/hosts/%s", c.ic.Config.BaseURL, tt.host.Name)
+		}
+		setupMockResponders(t, url, http.MethodPost, tt.wantCode, tt.wantBody, tt.wantErr)
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.Update(context.Background(), tt.host)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Update() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func Test_hosts_Delete(t *testing.T) {
 	tests := []struct {
 		name     string
